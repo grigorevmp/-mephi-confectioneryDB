@@ -12,6 +12,7 @@ class AutoCreateDB:
         self.createConfectionary()
         # 5 Employee
         self.emplID = 0
+        self.emplBossID = []
         self.createEmployee()
         # 20 WorkSchedule
         self.schlID = 0
@@ -19,6 +20,7 @@ class AutoCreateDB:
         # 21 WorkScheduleForEmployee
         self.createWorkScheduleForEmployee()
         # 10 Pricelist
+        self.PLINC = [[],[],[],[],[],[],[],[],[],[]]
         self.createPricelist()
         # 11 Pricelist
         self.createPricelistInConfectionary()
@@ -31,10 +33,34 @@ class AutoCreateDB:
         # 22 CookWareInStore
         self.createCookWareInStore()
         # 6 Ingredient
+        self.ingredientID = 0
+        self.ingredientCost = {}
         self.createIngredient()
+        # 12 Product
+        self.productID = 0
+        self.createProduct()
+        # 7 IngredientInStore
+        self.createIngredientInStore()
+        # 3 CookwareInProduct
+        self.createCookwareInProduct()
+        # 13 ProductComposition
+        self.productCost = {}
+        self.createProductComposition()
+        # 14 ProductInPriceList
+        self.createProductInPriceList()
 
     @staticmethod
     def clearDB():
+        # 13 ProductComposition
+        print("delete from ProductComposition;")
+        # 7 IngredientInStore
+        print("delete from IngredientInStore;")
+        # 3 CookwareInProduct
+        print("delete from CookwareInProduct;")
+        # 14 ProductInPriceList
+        print("delete from ProductInPriceList;")
+        # 12 Product
+        print("delete from Product;")
         # 6 Ingredient
         print("delete from Ingredient;")
         # 22 CookWareInStore
@@ -59,10 +85,66 @@ class AutoCreateDB:
         print("delete from Confectionary;")
 
 
+    def createProductComposition(self):
+        conf1 = """INSERT INTO ProductComposition(idProduct, idIngredient, IngredientType, EffectPercent, Amount)
+                  VALUES\n"""
+        types = ['Основной', 'Заменитель', 'Негативный']
+        for i in range(self.productID):
+            var = list(range(self.ingredientID))
+            sum = 0
+            num = random.choice(range(3,6))
+            for k in range(num):
+                ing = random.choice(var)
+                var.remove(ing)
+                amount = random.choice(range(1,11))
+                conf1 = conf1 + f"({i},{ing},'Основной',{random.choice(range(1,101))},{amount}), \n"
+                sum += self.ingredientCost[ing] * amount
+            self.productCost[i] = sum
+            num = random.choice(range(3,6))
+            for k in range(num):
+                ing = random.choice(var)
+                var.remove(ing)
+                conf1 = conf1 + f"({i},{ing},'Заменитель',{random.choice(range(1,101))},{random.choice(range(1,11))}), \n"
+                sum += self.ingredientCost[ing]
+            num = random.choice(range(3,6))
+            for k in range(num):
+                ing = random.choice(var)
+                var.remove(ing)
+                conf1 = conf1 + f"({i},{ing},'Негативный',{random.choice(range(1,101))},{random.choice(range(1,11))}), \n"
+                sum += self.ingredientCost[ing]
+
+        conf1 = conf1[:-3] + ";"
+        print(conf1)
+
+
+
+
+
+    def createProduct(self):
+        conf1 = """INSERT INTO Product(idProduct, idEmployee, Name, Description, CookingTime, BatchNumber)
+                  VALUES\n"""
+        idProduct = 0
+        with open("products", 'r', encoding='utf-8') as infile:
+            for line in infile:
+                boss = self.emplBossID[random.choice(range(len(self.emplBossID)))]
+                conf1 = conf1 + f"({idProduct},{boss},'{line[:-1]}','none',{random.choice(range(1,400))},{random.choice(range(0,99999))}), \n"
+                idProduct += 1
+        self.productID = idProduct
+        conf1 = conf1[:-3] + ";"
+        print(conf1)
+
     def createIngredient(self):
-        conf1 = """INSERT idIngredient Store(idIngredient, Weight, Cost, Caloricity, WeightInStock, AverageDailyUse, Name,ShelfLife)
+        conf1 = """INSERT INTO Ingredient(idIngredient, Weight, Cost, Caloricity, WeightInStock, AverageDailyUse, Name,ShelfLife)
                   VALUES\n"""
 
+        idIngredient = 0
+        with open("Ingredients", 'r', encoding='utf-8') as infile:
+            for line in infile:
+                cost = random.choice(range(100,1000))
+                self.ingredientCost[idIngredient]=cost
+                conf1 = conf1 + f"({idIngredient},{random.choice(range(100,1000))},{cost},{random.choice(range(50,500))},{random.choice(range(1000,100000))},{random.choice(range(1000,10000))},'{line[:-1]}','12.07.2021'), \n"
+                idIngredient += 1
+        self.ingredientID = idIngredient
         conf1 = conf1[:-3] + ";"
         print(conf1)
 
@@ -109,6 +191,48 @@ class AutoCreateDB:
         conf1 = conf1[:-3] + ";"
         print(conf1)
 
+    def createProductInPriceList(self):
+        conf1 = """INSERT INTO ProductInPriceList(idProduct, idPriceList, idConfectionary, Cost)
+                   VALUES\n"""
+        for i in range(self.productID):
+            for j in range(9):
+                for k in range(len(self.PLINC[j])):
+                    isR = random.choice([1, 2])
+                    if isR == 1:
+                        conf1 = conf1 + f"({i},{self.PLINC[j][k]},{j}, {self.productCost[i]}), \n"
+
+        conf1 = conf1[:-3] + ";"
+        print(conf1)
+
+
+    def createCookwareInProduct(self):
+        conf1 = """INSERT INTO CookwareInProduct(idProduct, Article, Amount)
+                   VALUES\n"""
+        for i in range(self.productID):
+            for j in range(len(self.CookWare)):
+                isR = random.choice([1, 2])
+                if isR == 1:
+                    conf1 = conf1 + f"({i},{self.CookWare[j]},{random.choice(range(1, 100))}), \n"
+
+        conf1 = conf1[:-3] + ";"
+        print(conf1)
+
+    def createIngredientInStore(self):
+        conf1 = """INSERT INTO IngredientInStore(idStore, idIngredient, Cost, Availability)
+                   VALUES\n"""
+
+        for i in range(self.storeID):
+            for j in range(self.ingredientID):
+                cost = random.choice(range(50, 10000))
+                availability = random.choice(range(0, 1000))
+                isR = random.choice([1, 2])
+                if isR == 1:
+                    conf1 = conf1 + f"({i},{j},{cost},{availability}), \n"
+
+        conf1 = conf1[:-3] + ";"
+        print(conf1)
+
+
     def createCookWareInStore(self):
         conf1 = """INSERT INTO CookwareInStore(idStore, Artice, Cost, Availability)
                    VALUES\n"""
@@ -134,22 +258,31 @@ class AutoCreateDB:
                       random.choice([1, 2])]
 
             conf1 = conf1 + f"({i},{0}, \'31.12.2021\'), \n"
+            self.PLINC[i] = [0]
             if result[1] == 1:
                 conf1 = conf1 + f"({i},{1}, \'10.05.2021\'), \n"
+                self.PLINC[i].append(1)
             if result[2] == 1:
                 conf1 = conf1 + f"({i},{2}, \'10.05.2021\'), \n"
+                self.PLINC[i].append(2)
             if result[3] == 1:
                 conf1 = conf1 + f"({i},{3}, \'31.01.2021\'), \n"
+                self.PLINC[i].append(3)
             if result[4] == 1:
                 conf1 = conf1 + f"({i},{4}, \'31.08.2021\'), \n"
+                self.PLINC[i].append(4)
             if result[5] == 1:
                 conf1 = conf1 + f"({i},{5}, \'28.02.2021\'), \n"
+                self.PLINC[i].append(5)
             if result[6] == 1:
                 conf1 = conf1 + f"({i},{6}, \'30.11.2021\'), \n"
+                self.PLINC[i].append(6)
             if result[7] == 1:
                 conf1 = conf1 + f"({i},{7}, \'31.05.2021\'), \n"
+                self.PLINC[i].append(7)
             if result[8] == 1:
                 conf1 = conf1 + f"({i},{8}, \'31.12.2021\'), \n"
+                self.PLINC[i].append(8)
 
         conf1 = conf1[:-3] + ";"
         print(conf1)
@@ -268,12 +401,13 @@ class AutoCreateDB:
                 names = line.split(" ")
                 my_range = range(0, 10)
                 Emp_Positions = ["\'Владелец\'", "\'Шеф-Кондитер\'", "\'Курьер\'", "\'Кассир\'", "\'Кондитер\'"]
-                passport = f"{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}"
+                passport = f"{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)} {random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}{random.choice(my_range)}"
                 BaseRate = random.choice(range(10000, 100000))
                 MinWorkingHours = random.choice(range(30, 40))
                 Salary = random.choice(range(10000, 100000))
-
-                string = f" ({idEmployee},{idConfectionary},{passport},{Emp_Positions[currentNum]},{BaseRate},{MinWorkingHours},{Salary},\'{names[0]}\',\'{names[1]}\', \'{names[2][:-1]}\'), \n"
+                if currentNum == 1:
+                    self.emplBossID.append(idEmployee)
+                string = f" ({idEmployee},{idConfectionary},'{passport}',{Emp_Positions[currentNum]},{BaseRate},{MinWorkingHours},{Salary},\'{names[0]}\',\'{names[1]}\', \'{names[2][:-1]}\'), \n"
 
                 idEmployee += 1
                 conf1 = conf1 + string
