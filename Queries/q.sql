@@ -64,6 +64,40 @@ select idingredient as НомерИнгредиента,
 		as tt
 		order by КоличествоИспользований DESC
 
+# VERSION 2
+
+with ing_and_prod as (select pc.idingredient as ing, pc.idproduct as prod from customer_order co
+					join rowinorder ro ON ro.ordernumber = co.ordernumber
+					join productcomposition pc on pc.idproduct = ro.idproduct),
+ 	topping_usning_count as (select ing, count(prod) as using_num from ing_and_prod group by ing),
+	ingredient_in_order as (
+				select distinct pc.idingredient as ing, co.ordernumber as ord
+					from customer_order co
+						join rowinorder ro ON ro.ordernumber = co.ordernumber
+						join productcomposition pc on pc.idproduct = ro.idproduct),
+	ingredient_count as (select ing, count(ord) as ord_num from ingredient_in_order group by ing),
+	ing_prod_topping as (select idingredient as ing, idproduct from toppinglist),
+	ingredient_in_product as (
+			select ing, count(idproduct) as liketopping from ing_prod_topping group by ing),
+	all_used as (select * from ingredient
+		left join topping_usning_count
+		on idingredient = topping_usning_count.ing
+		left join ingredient_count
+		on idingredient = ingredient_count.ing
+		left join ingredient_in_product
+		on idingredient = ingredient_in_product.ing)
+
+
+
+select idingredient as НомерИнгредиента,
+	name as Название,
+	COALESCE(using_num, 0) as КоличествоИспользований,
+	COALESCE(ord_num, 0) as КоличествоЗаказов,
+	COALESCE(liketopping, 0) as ЗаказТоппинга
+	from all_used
+	where all_used.using_num = (select max(using_num) from all_used);
+
+
 # 3) Информация о работнике - Кассир, курьер
 #	- Данные
 #	- Количество
@@ -193,3 +227,29 @@ left join
 	where ingredienttype = 'Заменитель'
 	group by idingredient) as tt2
 on ing.idingredient = tt2.idingredient
+
+"Hash Left Join  (cost=93.80..99.32 rows=98 width=150)"
+"  Hash Cond: (ing.idingredient = tt2.idingredient)"
+"  ->  Hash Left Join  (cost=62.53..67.05 rows=98 width=110)"
+"        Hash Cond: (ing.idingredient = tt1.idingredient)"
+"        ->  Hash Left Join  (cost=31.35..35.60 rows=98 width=70)"
+"              Hash Cond: (ing.idingredient = tt.idingredient)"
+"              ->  Seq Scan on ingredient ing  (cost=0.00..3.98 rows=98 width=30)"
+"              ->  Hash  (cost=30.15..30.15 rows=96 width=44)"
+"                    ->  Subquery Scan on tt  (cost=27.99..30.15 rows=96 width=44)"
+"                          ->  HashAggregate  (cost=27.99..29.19 rows=96 width=44)"
+"                                Group Key: productcomposition.idingredient"
+"                                ->  Seq Scan on productcomposition  (cost=0.00..25.77 rows=295 width=28)"
+"                                      Filter: ((ingredienttype)::text = 'Негативный'::text)"
+"        ->  Hash  (cost=30.00..30.00 rows=95 width=44)"
+"              ->  Subquery Scan on tt1  (cost=27.86..30.00 rows=95 width=44)"
+"                    ->  HashAggregate  (cost=27.86..29.05 rows=95 width=44)"
+"                          Group Key: productcomposition_1.idingredient"
+"                          ->  Seq Scan on productcomposition productcomposition_1  (cost=0.00..25.77 rows=278 width=28)"
+"                                Filter: ((ingredienttype)::text = 'Основной'::text)"
+"  ->  Hash  (cost=30.08..30.08 rows=95 width=44)"
+"        ->  Subquery Scan on tt2  (cost=27.94..30.08 rows=95 width=44)"
+"              ->  HashAggregate  (cost=27.94..29.13 rows=95 width=44)"
+"                    Group Key: productcomposition_2.idingredient"
+"                    ->  Seq Scan on productcomposition productcomposition_2  (cost=0.00..25.77 rows=289 width=28)"
+"                          Filter: ((ingredienttype)::text = 'Заменитель'::text)"
